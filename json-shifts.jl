@@ -15,17 +15,17 @@ end
 function parse_shift(shift)
     shift_dict = Dict{Symbol, Any}()
     name = shift["firstName"] * " " * shift["lastName"]
-    shift_dict[:Player] = name
-    shift_dict[:Player_Id] = shift["playerId"]
-    shift_dict[:Period] = shift["period"]
-    shift_dict[:Team] = shift["teamAbbrev"]
+    shift_dict[:player] = name
+    shift_dict[:player_id] = shift["playerId"]
+    shift_dict[:period] = shift["period"]
+    shift_dict[:team] = shift["teamAbbrev"]
 
     # At the end of the json they list when all the goal events happened. They are the only one"s which have their
     # eventDescription be not null
     if shift["eventDescription"] == nothing
-        shift_dict[:Start] = convert_to_seconds(shift["startTime"])
-        shift_dict[:End] = convert_to_seconds(shift["endTime"])
-        shift_dict[:Duration] = convert_to_seconds(shift["duration"])
+        shift_dict[:start] = convert_to_seconds(shift["startTime"])
+        shift_dict[:end] = convert_to_seconds(shift["endTime"])
+        shift_dict[:duration] = convert_to_seconds(shift["duration"])
     else
         shift_dict = Dict{Symbol, String}()
     end
@@ -39,7 +39,7 @@ function parse_json(shift_json, game_id::String)
     filter!(s -> !isempty(s), shifts)
     df = convert_dict_to_dataframe(shifts)
     df[:game_id] = String(game_id)[6:end]
-    sort!(df, (:Period, :Start), rev=(false, false))
+    sort!(df, (:period, :start), rev=(false, false))
     return df
 end
 
