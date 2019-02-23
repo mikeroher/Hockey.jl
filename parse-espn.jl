@@ -13,17 +13,17 @@ function get_espn_date(date::String)::String
     return response
 end
 
-function get_espn_game_id(date::String, home::String, away::String)
+function get_espn_game_id(date::String, home::String, away::String)::Union{String, Nothing}
     # Scrapes the schedule for the day and finds the matching game id
     response = get_espn_date(date)
     game_ids = get_game_ids(response)
     games = get_teams(response)
-    for i in 1:length(games)
+    for i in eachindex(games)
         if occursin(home, games[i][1]) || occursin(away, games[i][2])
             return game_ids[i]
         end
     end
-    return Nothing
+    return nothing
 end
 
 function get_game_ids(response::String)::Array{String}
@@ -53,15 +53,15 @@ function get_teams(response::String)::Array{Tuple}
     return [Tuple(teams[i:i + 1]) for i in 1:2:length(teams)]
 end
 
-function event_type(play_desc::String)
+function event_type(play_desc::String)::Union{Symbol, Nothing}
     EVENTS = Dict{String, Symbol}("GOAL SCORED" => :GOAL, "SHOT ON GOAL" => :SHOT,
     "SHOT MISSED" => :MISS, "SHOT BLOCKED" => :BLOCK, "PENALTY" => :PENL,
     "FACEOFF" => :FAC, "HIT" => :HIT, "TAKEAWAY" => :TAKE, "GIVEAWAY" => :GIVE)
     event = [EVENTS[e] for e in keys(EVENTS) if occursin(e, play_desc)]
-    return length(event) > 0 ? event[1] : Nothing
+    return length(event) > 0 ? event[1] : nothing
 end
 
-function parse_event(event)
+function parse_event(event::String)::Dict{Symbol,Any}
     info = Dict{Symbol, Any}()
     fields = split(event, "~")
     if fields[5] == "5"
@@ -77,7 +77,7 @@ function parse_event(event)
     return info
 end
 
-function parse_espn(espn_xml::String)
+function parse_espn(espn_xml::String)::DataFrame
     columns = ("period", "time_elapsed", "event", "xC", "yC")
     # Unicode.normalize(espn_xml, stripcc=true, newline2lf=true)
     # TODO: Strip unicode

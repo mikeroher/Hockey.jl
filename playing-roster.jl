@@ -5,7 +5,7 @@ using DataFrames
 
 include("shared.jl")
 
-function get_roster(game_id::String)
+function get_roster(game_id::String)::String
     A = game_id[1:4] # Year start = 2014
     B = parse(Int16, game_id[1:4]) + 1 # year start + 1
     C = game_id[5:end] #non-date game id
@@ -14,7 +14,7 @@ function get_roster(game_id::String)
     return response
 end
 
-function get_coaches(response)
+function get_coaches(response::String)::Dict{Symbol, String}
     html = parsehtml(response)
     coaches = eachmatch(Selector("tr#HeadCoaches"), html.root)
     if coaches == nothing
@@ -38,14 +38,15 @@ end
 
     :return: fixed list
 """
-function fix_name(player::Array)
+function fix_name(player::Array{String})::Array{String}
     fixed = player
     fixed[3] = replace(player[3], "(A)" => "")
     fixed[3] = replace(fixed[3], "(C)" => "")
+    fixed[3] = strip(fixed[3])
     return fixed
 end
 
-function get_players(response)
+function get_players(response::String)::Dict{Symbol, Array}
     html = parsehtml(response)
 
     tables = eachmatch(Selector("td.border > table"), html.root)
@@ -57,8 +58,8 @@ function get_players(response)
     player_info = [[player for player in group if player[1] != "#"] for group in player_info]
 
 
-    for i in range(1, length(player_info))
-        for j in range(1, length(player_info[i]))
+    for i in eachindex(player_info)
+        for j in eachindex(player_info[i])
             # Need to use strings here as the array is typed to Strings
             was_scratched = i == 3 || i == 4 ? "true" : "false"
             push!(player_info[i][j], was_scratched)
@@ -85,7 +86,7 @@ function get_players(response)
     return players
 end
 
-function get_content(response)
+function get_content(response::String)::Tuple{Dict{Symbol, Array}, Dict{Symbol, String}}
     players = get_players(response)
     coaches = get_coaches(response)
     return players, coaches

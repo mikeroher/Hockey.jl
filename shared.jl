@@ -10,7 +10,7 @@ function convert_to_seconds(minutes::String)::Int64
     return Dates.value(secs_obj)
 end
 
-function convert_dict_to_dataframe(dictionary)
+function convert_dict_to_dataframe(dictionary::Array{Dict{Symbol, Any}})::DataFrame
     return vcat(DataFrame.(dictionary)...)
 end
 
