@@ -6,20 +6,20 @@ import JSON
 
 include("shared.jl")
 
-function get_pbp(game_id::String)
+function get_pbp(game_id::String)::Dict{String, Any}
     request = HTTP.request("GET", "http://statsapi.web.nhl.com/api/v1/game/2016020475/feed/live")
     response = String(request.body)
     return JSON.parse(response)
 end
 
-function get_teams(response)::Dict
+function get_teams(response::Dict{String, Any})::Dict{Symbol, String}
     return Dict{Symbol, String}(
         :home => uppercase(response["gameData"]["teams"]["home"]["name"]),
         :away => uppercase(response["gameData"]["teams"]["away"]["name"])
     )
 end
 
-function event_type(event_desc::String)::Any
+function event_type(event_desc::String)::Union{Symbol, Nothing}
     EVENTS = Dict{String, Symbol}(
         "PERIOD_START" => :PSTR,
         "FACEOFF" => :FAC,
@@ -44,7 +44,7 @@ function event_type(event_desc::String)::Any
     return length(event) > 0 ? event[1] : nothing
 end
 
-function create_missing_columns(play_dict, event)
+function create_missing_columns(play_dict::Dict{Symbol, Any}, event::Dict{String,Any})
     N = "players" in keys(event) ? length(event["players"]) : 1
     # There are at most three events...
     MAX_N::Int8 = 4
@@ -55,7 +55,7 @@ function create_missing_columns(play_dict, event)
     end
 end
 
-function parse_event(event)::Dict
+function parse_event(event::Dict{String, Any})::Dict{Symbol, Any}
     play = Dict{Symbol, Any}()
     play[:event_id] = event["about"]["eventIdx"]
     play[:period] = event["about"]["period"]
@@ -64,9 +64,7 @@ function parse_event(event)::Dict
 
     # If an event occured on the play, then that means an event occured on the play
     if "players" in keys(event)
-        N::Int8 = length(event["players"])
-
-        for i in range(1, N)
+        for i in eachindex(event["players"])
             if event["players"][i]["playerType"] !== "Goalie"
                 play[Symbol("p$(i)_name")] = uppercase(event["players"][i]["player"]["fullName"])
                 play[Symbol("p$(i)_id")] = string(event["players"][i]["player"]["id"])
@@ -90,7 +88,7 @@ function parse_event(event)::Dict
 end
 
 
-function parse_json(response)
+function parse_json(response::Dict{String, Any})::DataFrame
     plays = response["liveData"]["plays"]["allPlays"]
     events = [parse_event(play) for play in plays]
     # Filter out events that are not common with the HTML PBP

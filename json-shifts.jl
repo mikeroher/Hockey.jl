@@ -12,8 +12,8 @@ function get_shifts(game_id::String)
     return JSON.parse(response)
 end
 
-function parse_shift(shift)
-    shift_dict = Dict{Symbol, Any}()
+function parse_shift(shift::Dict{String, Any})
+    shift_dict = Dict{Symbol, Union{String, Int64}}()
     name = shift["firstName"] * " " * shift["lastName"]
     shift_dict[:player] = name
     shift_dict[:player_id] = shift["playerId"]
@@ -27,14 +27,14 @@ function parse_shift(shift)
         shift_dict[:end] = convert_to_seconds(shift["endTime"])
         shift_dict[:duration] = convert_to_seconds(shift["duration"])
     else
-        shift_dict = Dict{Symbol, String}()
+        shift_dict = Dict{Symbol, Union{String, Int64}}()
     end
 
     return shift_dict
 end
 
 
-function parse_json(shift_json, game_id::String)
+function parse_json(shift_json::Dict{String, Any}, game_id::String)
     shifts = [parse_shift(shift) for shift in shift_json["data"]]
     filter!(s -> !isempty(s), shifts)
     df = convert_dict_to_dataframe(shifts)
@@ -44,4 +44,4 @@ function parse_json(shift_json, game_id::String)
 end
 
 shift_json = get_shifts("foobar")
-print(parse_json(shift_json, "2010020001"))
+println(describe(parse_json(shift_json, "2010020001")))

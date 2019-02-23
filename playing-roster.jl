@@ -42,6 +42,7 @@ function fix_name(player::Array)
     fixed = player
     fixed[3] = replace(player[3], "(A)" => "")
     fixed[3] = replace(fixed[3], "(C)" => "")
+    fixed[3] = strip(fixed[3])
     return fixed
 end
 
