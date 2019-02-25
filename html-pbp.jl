@@ -9,8 +9,8 @@ include("shared.jl")
 # Data Structures
 ###############################################################################
 
-const Player = NamedTuple{(:name, :position, :number),Tuple{String, Symbol, Int8}} #Tuple{String, Symbol, Int8}
-
+#const Player = NamedTuple{(:name, :position, :number),Tuple{String, Symbol, Int8}}
+const Player = Tuple{String, Symbol, Int8}
 mutable struct Game
     home_team::String # Short form (e.g. TBL)
     away_team::String # Short form (e.g. TOR)
@@ -141,7 +141,7 @@ function extract_players_on_ice(player_elm::HTMLElement)::Array{Player}
     players = Player[]
     for i in eachindex(plyrs)
         if i % 3 == 0
-            try
+            # try
                 name_pos_str = eachmatch(Selector("font"), plyrs[i])[1].attributes["title"]
                 name_pos_parts = split(name_pos_str, " - ")
                 # Get the player's name
@@ -151,10 +151,10 @@ function extract_players_on_ice(player_elm::HTMLElement)::Array{Player}
                 # Get the player's number
                 number = parse(Int8, strip(nodeText(plyrs[i])))
                 # println("$name\t$pos\t$number")
-                push!(players, Player(name, pos, number))
-            catch BoundsError
+                push!(players, (name, pos, number))
+            # catch BoundsError
                 # Some rows don't have players
-            end
+            # end
         end
     end
     return players
@@ -176,11 +176,11 @@ end
 function get_player_by_num_on_team(team::String, player_num::Int8, game::Game)::Union{Player, Nothing}
     player = nothing
     if team == game.home_team
-        player = [p for p in game.home_players if player_num == p[2]]
+        player = [p for p in game.home_players if player_num == p[3]]
     else
-        player = [p for p in game.home_players if player_num == p[2]]
+        player = [p for p in game.away_players if player_num == p[3]]
     end
-    if length(player) > 1
+    if length(player) == 1
         return player[1]
     else
         return nothing
@@ -189,12 +189,12 @@ end
 
 function populate_players(players::Array{Player}, team::String, game::Game)
     for player in players
-        println(player)
-        if team == game.home_team && get_player_by_num_on_team(team, player.number, game) == nothing
+        if team == game.home_team && get_player_by_num_on_team(team, player[3], game) == nothing
+            println("adding player $(player[1]) to the home team")
             push!(game.home_players, player)
         end
-        if team == game.away_team && get_player_by_num_on_team(team, player.number, game) == nothing
-            println("adding player $(player.name) to the away team")
+        if team == game.away_team && get_player_by_num_on_team(team, player[3], game) == nothing
+            println("adding player $(player[1]) to the away team")
             push!(game.away_players, player)
         end
     end
@@ -282,6 +282,16 @@ function scrape_pbp(game::Game, response::String)
         play[:event_zone] = extract_zone(event_long)
         play[:home_zone] = get_home_zone(event_short, play[:event_team], play[:event_zone], game)
 
+        away_players = extract_players_on_ice(tds[7])
+        home_players = extract_players_on_ice(tds[8])
+        play[:num_away_players] = length(away_players)
+        play[:num_home_players] = length(home_players)
+        merge!(play, extract_player_names(away_players, false))
+        merge!(play, extract_player_names(home_players, true))
+
+        populate_players(away_players, game.away_team, game)
+        populate_players(home_players, game.home_team, game)
+
         if event_short == :FAC
             # parse faceoff
             event_info = parse_fac(event_long, play[:event_team], game)
@@ -293,16 +303,6 @@ function scrape_pbp(game::Game, response::String)
         elseif event_short == :GOAL
         elseif event_short == :PENL
         end
-
-        away_players = extract_players_on_ice(tds[7])
-        home_players = extract_players_on_ice(tds[8])
-        play[:num_away_players] = length(away_players)
-        play[:num_home_players] = length(home_players)
-        merge!(play, extract_player_names(away_players, false))
-        merge!(play, extract_player_names(home_players, true))
-
-        populate_players(away_players, game.away_team, game)
-        populate_players(home_players, game.home_team, game)
 
 
         play[:home_team] = game.home_team
