@@ -210,18 +210,174 @@ end
 
 MTL won Neu. Zone - MTL #11 GOMEZ vs TOR #37 BRENT
 """
-function parse_fac(event_long, event_team, game)
+function parse_fac(event_long::String, event_team::String, game::Game)::Dict{Symbol, Union{String, Int8}}
     regex = eachmatch(r"(.{3})\s+#(\d+)", event_long)
     names = collect(regex)
+
+    # If team that won is the away team (away team is first, home_team is second)
     if event_team == names[1].captures[1]
-        p1 = names[1].captures[2]
-        p2 = names[2].captures[2]
-    else
-        p1 = names[2].captures[2]
-        p2 = names[1].captures[2]
+        p1_num = parse(Int8, names[1].captures[2])
+        p1_team = String(names[1].captures[1])
+        p2_num = parse(Int8, names[2].captures[2])
+        p2_team = String(names[2].captures[1])
+    else # if the team that won is the home team
+        p1_num = parse(Int8, names[2].captures[2])
+        p1_team = String(names[2].captures[1])
+        p2_num = parse(Int8, names[1].captures[2])
+        p2_team = String(names[1].captures[1])
     end
-    return Dict{Symbol, String}(:p1_name => p1, :p2_name => p2)
+
+    p1 = get_player_by_num_on_team(p1_team, p1_num, game)
+    p2 = get_player_by_num_on_team(p2_team, p2_num, game)
+    return Dict{Symbol, Union{String, Int8}}(:p1_name => p1[1], :p1_num => p1_num,
+     :p2_name => p2[1], :p2_num => p2_num)
 end
+
+"""
+Parse the description field for a: SHOT, MISS, TAKE, GIVE
+
+MTL ONGOAL - #81 ELLER, Wrist, Off. Zone, 11 ft.
+ANA #23 BEAUCHEMIN, Slap, Wide of Net, Off. Zone, 42 ft.
+TOR GIVEAWAY - #35 GIGUERE, Def. Zone
+TOR TAKEAWAY - #9 ARMSTRONG, Off. Zone
+"""
+function parse_shot_miss_take_give(event_long::String, event_team::String, game::Game)::Dict{Symbol, Union{String, Int8}}
+    regex = match(r"(\d+)", event_long)
+    p1_num = parse(Int8, regex.captures[1])
+    p1 = get_player_by_num_on_team(event_team, p1_num, game)
+    return Dict{Symbol, Union{String, Int8}}(:p1_name => p1[1], :p1_num => p1_num)
+end
+
+"""
+    parse_hit(args)
+
+ MTL #20 O'BYRNE HIT TOR #18 BROWN, Def. Zone
+"""
+function parse_hit(event_long::String, event_team::String, game::Game)::Dict{Symbol, Union{String, Int8}}
+    regex = eachmatch(r"(.{3})\s+#(\d+)", event_long)
+    names = collect(regex)
+    p1_team = String(names[1].captures[1])
+    p1_num = parse(Int8, names[1].captures[2])
+    p1 = get_player_by_num_on_team(p1_team, p1_num, game)
+
+    hit_info = Dict{Symbol, Union{String, Int8}}(:p1_name => p1[1], :p1_num => p1_num)
+
+    if length(names) > 1
+        p2_team = String(names[2].captures[1])
+        p2_num = parse(Int8, names[2].captures[2])
+        p2 = get_player_by_num_on_team(p2_team, p2_num, game)
+        hit_info[:p2_name] = p2[1]
+        hit_info[:p2_num] = p2_num
+    end
+    return hit_info
+end
+
+"""
+    parse_block()
+
+MTL #76 SUBBAN BLOCKED BY TOR #2 SCHENN, Wrist, Def. Zone
+"""
+function parse_block(event_long::String, event_team::String, game::Game)::Dict{Symbol, Union{String, Int8}}
+    regex = eachmatch(r"(.{3})\s+#(\d+)", event_long)
+    names = collect(regex)
+    p1_team = String(names[end].captures[1])
+    p1_num = parse(Int8, names[end].captures[2])
+    p1 = get_player_by_num_on_team(p1_team, p1_num, game)
+
+    block_info = Dict{Symbol, Union{String, Int8}}(:p1_name => p1[1], :p1_num => p1_num)
+
+    if length(names) > 1
+        p2_team = String(names[1].captures[1])
+        p2_num = parse(Int8, names[1].captures[2])
+        p2 = get_player_by_num_on_team(p2_team, p2_num, game)
+        block_info[:p2_name] = p2[1]
+        block_info[:p2_num] = p2_num
+    end
+    return block_info
+end
+
+"""
+    parse_goal()
+
+    TOR #81 KESSEL(1), Wrist, Off. Zone, 14 ft. Assists: #42 BOZAK(1); #8 KOMISAREK(1)
+"""
+function parse_goal(event_long::String, event_team::String, game::Game)::Dict{Symbol, Union{String, Int8}}
+    regex = eachmatch(r"#(\d+)\s+", event_long)
+    names = collect(regex)
+    p1_team = String(names[1].captures[1])
+    p1_num = parse(Int8, names[1].captures[2])
+    p1 = get_player_by_num_on_team(p1_team, p1_num, game)
+
+    goal_info = Dict{Symbol, Union{String, Int8}}(:p1_name => p1[1], :p1_num => p1_num)
+
+    if length(names) >= 2
+        p2_team = String(names[2].captures[1])
+        p2_num = parse(Int8, names[2].captures[2])
+        p2 = get_player_by_num_on_team(p2_team, p2_num, game)
+        goal_info[:p2_name] = p2[1]
+        goal_info[:p2_num] = p2_num
+
+        if length(names) == 3
+            p3_team = String(names[3].captures[1])
+            p3_num = parse(Int8, names[3].captures[2])
+            p3 = get_player_by_num_on_team(p3_team, p3_num, game)
+            goal_info[:p3_name] = p3[1]
+            goal_info[:p3_num] = p3_num
+        end
+    end
+    return goal_info
+end
+
+"""
+ MTL #81 ELLER Hooking(2 min), Def. Zone Drawn By: TOR #11 SJOSTROM
+"""
+function parse_penalty(event_long::String, event_team::String, game::Game)::Dict{Symbol, Union{String, Int8}}
+    up_evlng = uppercase(event_long)
+
+    penalty_info = Dict{Symbol, Union{String, Int8}}()
+
+    # Check if it's a Bench/Team Penalties
+    if occursin("BENCH", up_evlng) || occursin("TEAM", up_evlng)
+        penalty_info[:p1_name] = "TEAM"
+    else #STANDARD PENALTY
+        regex = eachmatch(r"(.{3})\s+#(\d+)", event_long)
+        names = collect(regex)
+        if !isempty(names)
+            p1_team = String(names[1].captures[1])
+            p1_num = parse(Int8, names[1].captures[2])
+            p1 = get_player_by_num_on_team(p1_team, p1_num, game)
+            penalty_info[:p1_name] = p1[1]
+            penalty_info[:p1_num] = p1_num
+
+            # When there are three the penalty was served by someone else
+            # The Person who served the penalty is placed as the 3rd event player
+            if length(names) == 3
+                p3_team = String(names[2].captures[1])
+                p3_num = parse(Int8, names[2].captures[2])
+                p3 = get_player_by_num_on_team(p3_team, p3_num, game)
+
+                p2_team = String(names[3].captures[1])
+                p2_num = parse(Int8, names[3].captures[2])
+                p2 = get_player_by_num_on_team(p2_team, p2_num, game)
+
+                penalty_info[:p2_name] = p2[1]
+                penalty_info[:p2_num] = p2_num
+                penalty_info[:p3_name] = p3[1]
+                penalty_info[:p3_num] = p3_num
+
+            elseif length(names) == 2
+                p2_team = String(names[2].captures[1])
+                p2_num = parse(Int8, names[2].captures[2])
+                p2 = get_player_by_num_on_team(p2_team, p2_num, game)
+                penalty_info[:p2_name] = p2[1]
+                penalty_info[:p2_num] = p2_num
+            end
+        end
+    end
+
+    return penalty_info
+end
+
 
 # increment_score_if_goal(event_short, event_team, home_team)
 """
@@ -252,6 +408,8 @@ function scrape_pbp(game::Game, response::String)
     trs = eachmatch(Selector("tr.evenColor"), html.root)
 
 
+    errored_events = String[]
+
     # columns = ['Period', 'Event', 'Description', 'Time_Elapsed', 'Seconds_Elapsed', 'Strength', 'Ev_Zone', 'Type',
     #        'Ev_Team', 'Home_Zone', 'Away_Team', 'Home_Team', 'p1_name', 'p1_ID', 'p2_name', 'p2_ID', 'p3_name',
     #        'p3_ID', 'awayPlayer1', 'awayPlayer1_id', 'awayPlayer2', 'awayPlayer2_id', 'awayPlayer3', 'awayPlayer3_id',
@@ -276,6 +434,7 @@ function scrape_pbp(game::Game, response::String)
 
         event_short = Symbol(nodeText(tds[5]))
         event_long =  nodeText(tds[6])
+        play[:event_short] = event_short
         play[:event_long] = event_long
         play[:event_team] = extract_event_team(event_short, event_long)
 
@@ -292,27 +451,48 @@ function scrape_pbp(game::Game, response::String)
         populate_players(away_players, game.away_team, game)
         populate_players(home_players, game.home_team, game)
 
-        if event_short == :FAC
-            # parse faceoff
-            event_info = parse_fac(event_long, play[:event_team], game)
-        elseif event_short in (:SHOT, :MISS, :GIVE, :TAKE)
-            # parse shot, miss, take, give
-        elseif event_short == :HIT
-            # parse hit
-        elseif event_short == :BLOCK
-        elseif event_short == :GOAL
-        elseif event_short == :PENL
+        event_info = nothing
+        # Sometimes a player records an event while not being on the ice.
+        # This is due to the scorekeeper forgetting to mark them on the ice.
+        # To handle these situations, we'll keep track of which ones fail and
+        # try adding them again at the end of the game.
+        try
+            if event_short == :FAC
+                # parse faceoff
+                event_info = parse_fac(event_long, play[:event_team], game)
+            elseif event_short in (:SHOT, :MISS, :GIVE, :TAKE)
+                event_info = parse_shot_miss_take_give(event_long, play[:event_team], game)
+            elseif event_short == :HIT
+                event_info = parse_hit(event_long, play[:event_team], game)
+            elseif event_short == :BLOCK
+                event_info = parse_block(event_long, play[:event_team], game)
+            elseif event_short == :GOAL
+                event_info = parse_goal(event_long, play[:event_team], game)
+            elseif event_short == :PENL
+                event_info = parse_penalty(event_long, play[:event_team], game)
+            end
+            if event_info != nothing
+                merge!(play, event_info)
+            end
+        catch err
+            # When the player does not exist, we get method errors as we try to
+            # call a method on a player that does not exist. Let's store these
+            # events and throw the remaining ones so we don't catch everything.
+            if isa(err, MethodError) || isa(err, BoundsError)
+                push!(errored_events, event_long)
+            else
+                catch_backtrace()
+            end
         end
-
 
         play[:home_team] = game.home_team
         play[:away_team] = game.away_team
         play[:home_score] = game.home_score
         play[:away_score] = game.away_score
 
-        println(play)
-        if play[:time_elapsed] > 200; break; end
+        # println(play)
     end
+    println(errored_events)
 end
 
 println("--------------------------------------------------------------------")
