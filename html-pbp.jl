@@ -6,10 +6,36 @@ using DataFrames
 include("shared.jl")
 
 ###############################################################################
+#    _  _  _____  __  __  _       ___  ___  ___
+#   | || ||_   _||  \/  || |     | _ \| _ )| _ \
+#   | __ |  | |  | |\/| || |__   |  _/| _ \|  _/
+#   |_||_|  |_|  |_|  |_||____|  |_|  |___/|_|
+#   ##########################################################################
+#
+# TABLE OF CONTENTS
+#   1. Data Structures
+#   2. Extract Game Details
+#   3. Parsing Non-Event Columns of Event
+#   4. Extract Zone and Home-Oriented Zone from Event String
+#   5. All Player Related Methods
+#       i) Extract players on ice from html into our Player namedtuple data structure
+#      ii) Return a dictionary of player names and the goalie name to add to the event string
+#     iii) Search for a player by number in our Game object's player list
+#      iv) Add an array of players to the Game object's player list if they aren't already there
+#   6. Parse The Different Types of Events That Can Be Described in an Event String
+#       i) Faceoffs
+#      ii) Shot, Miss, Takeaways, Giveaways
+#     iii) Hits
+#      iv) Blocks
+#       v) Goals
+#      vi) Penalties
+#   7. Increment Score if a Goal Was Scored
+#   8. Scraping & Main Methods
+
+###############################################################################
 # Data Structures
 ###############################################################################
 
-#const Player = NamedTuple{(:name, :position, :number),Tuple{String, Symbol, Int8}}
 const Player = Tuple{String, Symbol, Int8}
 mutable struct Game
     home_team::String # Short form (e.g. TBL)
