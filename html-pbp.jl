@@ -15,8 +15,15 @@ include("shared.jl")
 # TABLE OF CONTENTS
 #   1. Data Structures
 #   2. Extract Game Details
+#       i) Team Names
+#      ii) Game Status (scheduled, live, final)
 #   3. Parsing Non-Event Columns of Event
-#   4. Extract Zone and Home-Oriented Zone from Event String
+#       i) Strength
+#      ii) Elapsed Time in Period
+#   4. Extract Event Team, Zone and Home-Oriented Zone from Event String
+#       i) Extract the event's main team
+#      ii) Extract the zone the play occured in for the team described
+#     iii) Extract the zone the play occured in, relative to the home team
 #   5. All Player Related Methods
 #       i) Extract players on ice from html into our Player namedtuple data structure
 #      ii) Return a dictionary of player names and the goalie name to add to the event string
@@ -105,6 +112,9 @@ function extract_elapsed_time(both_times::String)::Int64
     return convert_to_seconds(String(total_time[1].match))
 end
 
+###############################################################################
+# Extract Event Team, Zone and Home-Oriented Zone from Event String
+###############################################################################
 function extract_event_team(short_event::Symbol, event_long::String)::Union{String, Nothing}
     if short_event in (:GOAL, :SHOT, :MISS, :BLOCK,
          :PENL, :FAC, :HIT, :TAKE, :GIVE)
@@ -112,10 +122,6 @@ function extract_event_team(short_event::Symbol, event_long::String)::Union{Stri
     end
     return nothing
 end
-
-###############################################################################
-# Extract Zone and Home-Oriented Zone from Event String
-###############################################################################
 
 function extract_zone(play_desc::String)::Union{Symbol, Nothing}
     parts = [strip(s) for s in split(play_desc, ",")]
