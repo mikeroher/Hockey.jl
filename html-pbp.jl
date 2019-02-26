@@ -44,6 +44,8 @@ include("shared.jl")
 ###############################################################################
 
 const Player = Tuple{String, Symbol, Int8}
+const Nullable{T} = Union{T, Nothing}
+
 mutable struct Game
     home_team::String # Short form (e.g. TBL)
     away_team::String # Short form (e.g. TOR)
@@ -99,8 +101,14 @@ end
 #   - Time
 ###############################################################################
 
-function extract_strength(raw_strength::String)::Symbol
-    return Symbol(raw_strength)
+function extract_strength(strength::String, home_players::Array{Player}, away_players::Array{Player})::Nullable{Symbol}
+    if home_players == nothing || away_players == nothing ||
+        (length(home_players) == 0 && length(away_players) == 0)
+        return Symbol(strength)
+    end
+    home = [1 for plyr in home_players if plyr[2] != :goalie]
+    away = [1 for plyr in away_players if plyr[2] != :goalie]
+    return Symbol("$(length(home))x$(length(away))")
 end
 
 function extract_elapsed_time(both_times::String)::Int64
@@ -115,7 +123,7 @@ end
 ###############################################################################
 # Extract Event Team, Zone and Home-Oriented Zone from Event String
 ###############################################################################
-function extract_event_team(short_event::Symbol, event_long::String)::Union{String, Nothing}
+function extract_event_team(short_event::Symbol, event_long::String)::Nullable{String}
     if short_event in (:GOAL, :SHOT, :MISS, :BLOCK,
          :PENL, :FAC, :HIT, :TAKE, :GIVE)
         return strip(split(event_long, " ")[1])
@@ -123,7 +131,7 @@ function extract_event_team(short_event::Symbol, event_long::String)::Union{Stri
     return nothing
 end
 
-function extract_zone(play_desc::String)::Union{Symbol, Nothing}
+function extract_zone(play_desc::String)::Nullable{Symbol}
     parts = [strip(s) for s in split(play_desc, ",")]
     zone = [x for x in parts if occursin("Zone", x)]  # Find if list contains which zone
     if isempty(zone)
@@ -140,7 +148,7 @@ function extract_zone(play_desc::String)::Union{Symbol, Nothing}
     end
 end
 
-function get_home_zone(event_short::Symbol, event_team::Union{String, Nothing}, zone::Union{Symbol, Nothing}, game::Game)::Union{Symbol, Nothing}
+function get_home_zone(event_short::Symbol, event_team::Nullable{String}, zone::Nullable{Symbol}, game::Game)::Nullable{Symbol}
     if zone == nothing
         return nothing
     end
@@ -205,7 +213,7 @@ function extract_player_names(players::Array{Player}, is_home::Bool)::Dict{Symbo
     return play
 end
 
-function get_player_by_num_on_team(team::String, player_num::Int8, game::Game)::Union{Player, Nothing}
+function get_player_by_num_on_team(team::String, player_num::Int8, game::Game)::Nullable{Player}
     player = nothing
     if team == game.home_team
         player = [p for p in game.home_players if player_num == p[3]]
@@ -222,11 +230,11 @@ end
 function populate_players(players::Array{Player}, team::String, game::Game)
     for player in players
         if team == game.home_team && get_player_by_num_on_team(team, player[3], game) == nothing
-            println("adding player $(player[1]) to the home team")
+            # println("adding player $(player[1]) to the home team")
             push!(game.home_players, player)
         end
         if team == game.away_team && get_player_by_num_on_team(team, player[3], game) == nothing
-            println("adding player $(player[1]) to the away team")
+            # println("adding player $(player[1]) to the away team")
             push!(game.away_players, player)
         end
     end
@@ -234,7 +242,12 @@ end
 
 ###############################################################################
 # Parse The Different Types of Events That Can Be Described in an Event String
-# 1. Faceofff
+#       i) Faceoffs
+#      ii) Shot, Miss, Takeaways, Giveaways
+#     iii) Hits
+#      iv) Blocks
+#       v) Goals
+#      vi) Penalties
 ###############################################################################
 
 """
@@ -410,6 +423,57 @@ function parse_penalty(event_long::String, event_team::String, game::Game)::Dict
     return penalty_info
 end
 
+################################################################################
+# Add Types of Events (i.e. shot type, or penalty type)
+################################################################################
+function get_penalty_type(event_long::String, game::Game)
+    up_evlng = uppercase(event_long)
+
+    # Check if it's a Bench/Team Penalties
+    if occursin("BENCH", up_evlng) || occursin("TEAM", up_evlng)
+        beg_penl_idx = findfirst("TEAM", up_evlng).stop + 5
+        end_pel_idx = findfirst(")", up_evlng).start + 1
+        return event_long[beg_penl_idx:end_pel_idx]
+    else
+        regex = eachmatch(r"(.{3})\s+#(\d+)", event_long)
+        names = collect(regex)
+
+        if isempty(names)
+            return nothing
+        end
+        p_team = String(names[1].captures[1])
+        p_num = parse(Int8, names[1].captures[2])
+        plyr = get_player_by_num_on_team(p_team, p_num, game)
+
+        # Find the player's number and last name specified then use that as the
+        # beginning index for the penalty type.
+        # Spaces are included to handle Del Zotto for now. May switch to period names
+        penalty_type_regex = match(r"(\#\d+\s[A-Z\s]+)", event_long)
+        num_name = penalty_type_regex.captures[1]
+        # -2 because the index returns the second letter of the name
+        # https://regexr.com/493hp
+        beg_penl_idx = findfirst(String(num_name), event_long).stop - 2
+        end_pel_idx = findfirst("(", event_long).start - 1
+        return strip(event_long[beg_penl_idx:end_pel_idx])
+    end
+end
+
+function get_shot_type(event_long::String, game::Game)
+    TYPES = ("wrist", "snap", "slap", "deflected", "tip-in", "backhand", "wrap-around")
+    play_parts = [lowercase(strip(x)) for x in split(event_long, ",")]
+    for p in play_parts
+        if p in TYPES
+            if p in ("wrist", "snap", "slap")
+                return Symbol("$(p)shot")
+            else
+                return Symbol(p)
+            end
+        end
+    end
+
+    return nothing
+end
+
 
 # increment_score_if_goal(event_short, event_team, home_team)
 """
@@ -439,7 +503,7 @@ function scrape_pbp(game::Game, response::String)
     html = parsehtml(response)
     trs = eachmatch(Selector("tr.evenColor"), html.root)
 
-
+    plays = Array{Dict{Symbol, Any}}(undef, 0)
     errored_events = String[]
 
     # columns = ['Period', 'Event', 'Description', 'Time_Elapsed', 'Seconds_Elapsed', 'Strength', 'Ev_Zone', 'Type',
@@ -461,7 +525,6 @@ function scrape_pbp(game::Game, response::String)
             play[:period] = 0
         end
 
-        play[:strength] = extract_strength(nodeText(tds[3]))
         play[:time_elapsed] = extract_elapsed_time(nodeText(tds[4]))
 
         event_short = Symbol(nodeText(tds[5]))
@@ -483,7 +546,16 @@ function scrape_pbp(game::Game, response::String)
         populate_players(away_players, game.away_team, game)
         populate_players(home_players, game.home_team, game)
 
+        # play[:strength] = extract_strength(nodeText(tds[3]))
+        # Ignore the strength field and manually compute to make home-relative
+        play[:strength] = extract_strength(home_players, away_players)
+        play[:home_team] = game.home_team
+        play[:away_team] = game.away_team
+        play[:home_score] = game.home_score
+        play[:away_score] = game.away_score
+
         event_info = nothing
+        # Add Event Players
         # Sometimes a player records an event while not being on the ice.
         # This is due to the scorekeeper forgetting to mark them on the ice.
         # To handle these situations, we'll keep track of which ones fail and
@@ -513,18 +585,21 @@ function scrape_pbp(game::Game, response::String)
             if isa(err, MethodError) || isa(err, BoundsError)
                 push!(errored_events, event_long)
             else
-                catch_backtrace()
+                rethrow(err)
             end
         end
 
-        play[:home_team] = game.home_team
-        play[:away_team] = game.away_team
-        play[:home_score] = game.home_score
-        play[:away_score] = game.away_score
+        if event_short == :PENL
+            play[:type] = get_penalty_type(event_long, game)
+        elseif event_short in (:SHOT, :MISS, :GOAL)
+            play[:type] = get_shot_type(event_long, game)
+        end
 
-        # println(play)
+        push!(plays, play)
     end
     println(errored_events)
+    add_missing_columns!(plays)
+    return convert_dict_to_dataframe(plays)
 end
 
 println("--------------------------------------------------------------------")
@@ -532,6 +607,5 @@ response = get_pbp("fooo")
 away_team, home_team = extract_teams(response)
 game = Game(home_team, away_team, 0, 0, Player[], Player[])
 game_status(response)
-scrape_pbp(game, response)
-extract_teams(response)
+df = scrape_pbp(game, response)
 println("--------------------------------------------------------------------")
