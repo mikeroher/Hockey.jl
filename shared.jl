@@ -1,7 +1,7 @@
 using Dates
 using DataFrames
 
-function convert_to_seconds(minutes::String)::Integer
+function convert_to_seconds(minutes::AbstractString)::Integer
     # A small workaround to get the total seconds
     mins = Dates.DateTime(minutes, "MM:SS")
     # Round down to the nearest date

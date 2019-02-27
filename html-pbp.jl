@@ -53,6 +53,10 @@ mutable struct Game
     away_score::Int16
     home_players::Array{Player}
     away_players::Array{Player}
+
+    function Game(home_team::String, away_team::String)
+        new(home_team, away_team, 0, 0, Player[], Player[])
+    end
 end
 
 ###############################################################################
@@ -177,10 +181,10 @@ end
 
 function extract_players_on_ice(player_elm::HTMLElement)::Array{Player}
     team = eachmatch(Selector("td"), player_elm)
-    plyrs = [team[i] for i in eachindex(team) if i % 4 != 0]
+    plyrs = [team[i] for i in eachindex(team) if mod(i, 4) != 0]
     players = Player[]
     for i in eachindex(plyrs)
-        if i % 3 == 0
+        if mod(i, 3) == 0
             # try
                 name_pos_str = eachmatch(Selector("font"), plyrs[i])[1].attributes["title"]
                 name_pos_parts = split(name_pos_str, " - ")
@@ -494,7 +498,13 @@ function increment_score(event_team::String, game::Game)
 end
 
 function get_pbp(game_id::String)::String
-    request = HTTP.request("GET", "http://www.nhl.com/scores/htmlreports/20162017/PL020475.HTM")
+    # request = HTTP.request("GET", "http://www.nhl.com/scores/htmlreports/20162017/PL020475.HTM")
+    A = game_id[1:4] # Year start = 2014
+    B = parse(Int16, game_id[1:4]) + 1 # year start + 1
+    C = game_id[5:end] #non-date game id
+    request = HTTP.request("GET", "http://www.nhl.com/scores/htmlreports/$(A)$(B)/PL$C.HTM")
+    response = String(request.body)
+    return response
     response = String(request.body)
     return response
 end
@@ -533,7 +543,7 @@ function scrape_pbp(game::Game, response::String)
         play[:event_long] = event_long
         play[:event_team] = extract_event_team(event_short, event_long)
 
-        play[:event_zone] = extract_zone(event_long)
+        play[:event_zone] = @time extract_zone(event_long)
         play[:home_zone] = get_home_zone(event_short, play[:event_team], play[:event_zone], game)
 
         away_players = extract_players_on_ice(tds[7])
@@ -548,7 +558,7 @@ function scrape_pbp(game::Game, response::String)
 
         # play[:strength] = extract_strength(nodeText(tds[3]))
         # Ignore the strength field and manually compute to make home-relative
-        play[:strength] = extract_strength(home_players, away_players)
+        play[:strength] = extract_strength(nodeText(tds[3]), home_players, away_players)
         play[:home_team] = game.home_team
         play[:away_team] = game.away_team
         play[:home_score] = game.home_score
@@ -603,9 +613,9 @@ function scrape_pbp(game::Game, response::String)
 end
 
 println("--------------------------------------------------------------------")
-response = get_pbp("fooo")
+response = get_pbp("2016020426")
 away_team, home_team = extract_teams(response)
-game = Game(home_team, away_team, 0, 0, Player[], Player[])
+game = Game(home_team, away_team)
 game_status(response)
-df = scrape_pbp(game, response)
+scrape_pbp(game, response)
 println("--------------------------------------------------------------------")
