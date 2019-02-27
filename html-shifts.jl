@@ -73,6 +73,14 @@ function parse_html(response, team)
         return players
     end
 
+    function is_last_column(td_text::AbstractString)
+        stripped = strip(td_text)
+        is_empty = length(stripped) == 0
+        is_value = stripped in ("G", "P", "GP")
+        is_header = occursin("EventG", stripped)
+        return is_header || is_empty || is_value
+    end
+
     players = get_players_tuples(html.root)
     tds = eachmatch(Selector("td.lborder.bborder"), html.root)
 
@@ -80,7 +88,9 @@ function parse_html(response, team)
 
     # Store the number of columns in the table (-1 because we aren't including
     # the last column)
-    NUM_COLS = 6
+    TOI_COLS = 5
+    # Store th enumber of columns in the summary table
+    SUMM_COLS = 7
 
     # Store the index and name of the current player
     curr_idx = 0
@@ -102,7 +112,7 @@ function parse_html(response, team)
             # Initialize an empty array for the player's shift dicts
             all_raw_shifts[curr_name] = []
             # Skip the row (- 1 because we handle the last column separately)
-            td_idx += (NUM_COLS - 1)
+            td_idx += TOI_COLS
         elseif occursin("Per", text)
             # If we're at the end of the table, we need to skip to the next player.
             # We can't just increment by a fixed amount as there are summary tables
@@ -110,11 +120,11 @@ function parse_html(response, team)
             # summary table and increment to one past it.
             while !occursin("TOT", nodeText(tds[td_idx]))
                 # This will find the last row of the summary table.
-                td_idx += 7
+                td_idx += SUMM_COLS
             end
             # Then we want to increment to one row past it.
-            td_idx += 7
-        elseif length(strip(text)) == 0 || strip(text) in ("G", "P", "GP") || occursin("EventG", text)
+            td_idx += SUMM_COLS
+        elseif is_last_column(text)
             # Remove the last column which indicates the event due to some weird edge-cases
             # where some cells have inner tables with more cells and others have only one.
             td_idx += 1
