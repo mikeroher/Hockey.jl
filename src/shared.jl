@@ -1,7 +1,24 @@
-using Dates
+################################################################################
+# PACKAGES USED BY ALL SUBMODULES
+################################################################################
+using Cascadia
+using Gumbo
+using HTTP
 using DataFrames
 
+# Used by shared.jl
+using Dates
+
+################################################################################
+# Data Structures
+################################################################################
+
 const Nullable{T} = Union{T, Nothing}
+
+################################################################################
+# Convenience Methods
+################################################################################
+
 
 function convert_to_seconds(minutes::AbstractString)::Integer
     # A small workaround to get the total seconds

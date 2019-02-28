@@ -1,7 +1,4 @@
-using Cascadia
-using Gumbo
-using HTTP
-using DataFrames
+module HTML_PBP
 
 include("shared.jl")
 
@@ -611,10 +608,19 @@ function scrape_pbp(game::Game, response::String)
     return convert_dict_to_dataframe(plays)
 end
 
-println("--------------------------------------------------------------------")
-response = get_pbp("2016020426")
-away_team, home_team = extract_teams(response)
-game = Game(home_team, away_team)
-game_status(response)
-scrape_pbp(game, response)
-println("--------------------------------------------------------------------")
+function scrape_game(game_id::String)::DataFrame
+    response = get_pbp(game_id)
+    away_team, home_team = extract_teams(response)
+    game = Game(home_team, away_team)
+    return scrape_pbp(game, response)
+end
+#
+# println("--------------------------------------------------------------------")
+# response = get_pbp("2016020426")
+# away_team, home_team = extract_teams(response)
+# game = Game(home_team, away_team)
+# game_status(response)
+# scrape_pbp(game, response)
+# println("--------------------------------------------------------------------")
+
+end

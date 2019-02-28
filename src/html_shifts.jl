@@ -1,7 +1,4 @@
-using Cascadia
-using Gumbo
-using HTTP
-using DataFrames
+module HTML_Shifts
 
 include("shared.jl")
 
@@ -146,13 +143,15 @@ function parse_html(response, team)
 end
 
 function scrape_shifts(game_id::AbstractString)
-    vcat
+    home_response, away_response = get_shifts(game_id)
+    home_team = get_team_name(home_response)
+    away_team = get_team_name(away_response)
+
+    home_shifts = parse_html(home_response, home_team)
+    away_shifts = parse_html(away_response, away_team)
+    return home_shifts, away_shifts
+end
+
 end
 
 #http://www.nhl.com/scores/htmlreports/20162017/TH020426.HTM
-home_response, away_response = get_shifts("2016020426")
-home_team = get_team_name(home_response)
-away_team = get_team_name(away_response)
-
-home_shifts = parse_html(home_response, home_team)
-away_shifts = parse_html(away_response, away_team)

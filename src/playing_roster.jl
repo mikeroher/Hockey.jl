@@ -1,7 +1,4 @@
-using Cascadia
-using Gumbo
-using HTTP
-using DataFrames
+module PlayingRoster
 
 include("shared.jl")
 
@@ -86,14 +83,17 @@ function get_players(response::String)::Dict{Symbol, Array}
     return players
 end
 
-function get_content(response::String)::Tuple{Dict{Symbol, Array}, Dict{Symbol, String}}
+function scrape_roster_and_coaches(game_id::AbstractString)::Tuple{Dict{Symbol, Array}, Dict{Symbol, String}}
+    response = get_roster(game_id)
     players = get_players(response)
     coaches = get_coaches(response)
     return players, coaches
 end
+#
+# response = get_roster("2016020426")
+# print(get_coaches(response))
+# get_players(response)
+#
+# players, coaches = get_content(response)
 
-response = get_roster("2016020426")
-print(get_coaches(response))
-get_players(response)
-
-players, coaches = get_content(response)
+end

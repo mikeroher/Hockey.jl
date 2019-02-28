@@ -1,13 +1,12 @@
 # JSON Shifts are only available from 2010 onwards
-using Cascadia
-using Gumbo
-using HTTP
+module JSON_Shifts
+
 import JSON
 
 include("shared.jl")
 
-function get_shifts(game_id::String)
-    request = HTTP.request("GET", "http://www.nhl.com/stats/rest/shiftcharts?cayenneExp=gameId=2010020001")
+function get_shifts(game_id::AbstractString)
+    request = HTTP.request("GET", "http://www.nhl.com/stats/rest/shiftcharts?cayenneExp=gameId=$game_id")
     response = String(request.body)
     return JSON.parse(response)
 end
@@ -43,5 +42,9 @@ function parse_json(shift_json::Dict{String, Any}, game_id::String)
     return df
 end
 
-shift_json = get_shifts("foobar")
-println(describe(parse_json(shift_json, "2010020001")))
+function scrape_shifts(game_id::AbstractString)
+    shift_json = get_shifts(game_id)
+    return parse_json(shift_json, game_id)
+end
+
+end

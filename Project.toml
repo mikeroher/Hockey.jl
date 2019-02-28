@@ -1,4 +1,4 @@
-name = "Hockey.jl"
+name = "Hockey"
 uuid = "e74bf37c-3aff-11e9-3b4e-438e08f9cd91"
 authors = ["Michael Roher <roher4@gmail.com>"]
 version = "0.1.0"

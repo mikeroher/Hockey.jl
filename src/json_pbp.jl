@@ -1,13 +1,10 @@
-# JSON Shifts are only available from 2010 onwards
-using Cascadia
-using Gumbo
-using HTTP
-import JSON
+module JSON_PBP
 
 include("shared.jl")
+import JSON
 
 function get_pbp(game_id::String)::Dict{String, Any}
-    request = HTTP.request("GET", "http://statsapi.web.nhl.com/api/v1/game/2016020475/feed/live")
+    request = HTTP.request("GET", "http://statsapi.web.nhl.com/api/v1/game/$game_id/feed/live")
     response = String(request.body)
     return JSON.parse(response)
 end
@@ -98,9 +95,15 @@ function parse_json(response::Dict{String, Any})::DataFrame
     return df
 end
 
-###############################
+function scrape_game(game_id::String)
+    response = get_pbp(game_id)
+    return parse_json(response)
+end
 
-response = get_pbp("foobar")
-println(get_teams(response))
-
-x = parse_json(response)
+end
+# ###############################
+#
+# response = get_pbp("foobar")
+# println(get_teams(response))
+#
+# x = parse_json(response)

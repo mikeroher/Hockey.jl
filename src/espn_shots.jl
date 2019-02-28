@@ -1,21 +1,25 @@
-using Cascadia
-using Gumbo
-using HTTP
+module ESPN_Shots
+
 using LightXML
-using DataFrames
 
 include("shared.jl")
 
-function get_espn_date(date::String)::String
+function get_espn_games_on_date(date::String)::String
     # input date as YYYYMMDD
     request = HTTP.request("GET", "http://www.espn.com/nhl/scoreboard?date=$date")
     response = String(request.body)
     return response
 end
 
+function get_espn_game_pbp(game_id::String)
+    request = HTTP.request("GET", "http://www.espn.com/nhl/gamecast/data/masterFeed?lang=en&isAll=true&gameId=$game_id")
+    response = String(request.body)
+    return response
+end
+
 function get_espn_game_id(date::String, home::String, away::String)::Union{String, Nothing}
     # Scrapes the schedule for the day and finds the matching game id
-    response = get_espn_date(date)
+    response = get_espn_games_on_date(date)
     game_ids = get_game_ids(response)
     games = get_teams(response)
     for i in eachindex(games)
@@ -78,7 +82,6 @@ function parse_event(event::String)::Dict{Symbol,Any}
 end
 
 function parse_espn(espn_xml::String)::DataFrame
-    columns = ("period", "time_elapsed", "event", "xC", "yC")
     # Unicode.normalize(espn_xml, stripcc=true, newline2lf=true)
     # TODO: Strip unicode
     xdoc = parse_string(espn_xml)
@@ -91,15 +94,24 @@ function parse_espn(espn_xml::String)::DataFrame
     return convert_dict_to_dataframe(plays)
 end
 
+"""
+date = YYYYMMDD
+"""
+function scrape_shots(date::AbstractString, home_team::AbstractString, away_team::AbstractString)
+    espn_id = get_espn_game_id(date, home, away)
+    response = get_espn_game_pbp(espn_id)
+    return parse_espn(response)
+end
 
+end
 
 ##########################################
 # Test
 ##########################################
-print(parse_event("49~-21~507~0:50~3~3101~0~0~Shot missed by Alex Ovechkin~0~0~2~0~701~23~0~901~43~0~0"))
-
-response = get_espn_date("20190211")
-println(get_game_ids(response))
-println(get_teams(response))
-println(get_espn_game_id("20190211", "PITTSBURGH PENGUINS", "PHILADELPHIA FLYERS"))
-df = parse_espn(String(HTTP.request("GET", "http://www.espn.com/nhl/gamecast/data/masterFeed?lang=en&isAll=true&gameId=401045249").body))
+# print(parse_event("49~-21~507~0:50~3~3101~0~0~Shot missed by Alex Ovechkin~0~0~2~0~701~23~0~901~43~0~0"))
+#
+# response = get_espn_games_on_date("20190211")
+# println(get_game_ids(response))
+# println(get_teams(response))
+# println(get_espn_game_id("20190211", "PITTSBURGH PENGUINS", "PHILADELPHIA FLYERS"))
+# df = parse_espn(String(HTTP.request("GET", "http://www.espn.com/nhl/gamecast/data/masterFeed?lang=en&isAll=true&gameId=401045249").body))
