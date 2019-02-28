@@ -44,7 +44,6 @@ include("shared.jl")
 ###############################################################################
 
 const Player = Tuple{String, Symbol, Int8}
-const Nullable{T} = Union{T, Nothing}
 
 mutable struct Game
     home_team::String # Short form (e.g. TBL)
@@ -543,7 +542,7 @@ function scrape_pbp(game::Game, response::String)
         play[:event_long] = event_long
         play[:event_team] = extract_event_team(event_short, event_long)
 
-        play[:event_zone] = @time extract_zone(event_long)
+        play[:event_zone] = extract_zone(event_long)
         play[:home_zone] = get_home_zone(event_short, play[:event_team], play[:event_zone], game)
 
         away_players = extract_players_on_ice(tds[7])

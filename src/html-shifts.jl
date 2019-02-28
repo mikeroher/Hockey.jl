@@ -34,7 +34,6 @@ function analyze_shifts(shift, name, team)
     shift_dict = Dict{Symbol, Any}()
 
     shift_text = [nodeText(s) for s in shift]
-    println(shift_text)
     shift_dict[:player] = uppercase(name)
 
     period = ifelse(shift_text[2] == "OT", 4, shift_text[2])
@@ -133,19 +132,27 @@ function parse_html(response, team)
             td_idx += 1
         end
     end
+    df = nothing
     for player in keys(all_raw_shifts)
         first_shift = all_raw_shifts[player][1:5]
         shifts = [analyze_shifts(all_raw_shifts[player][i:i + 4], player, team) for i in 1:5:length(all_raw_shifts[player]) ]
-    #     println("Length of $player is $(length(all_raw_shifts[player])) which is $(mod(length(all_raw_shifts[player]), 6) == 0)")
+        if df == nothing
+            df = convert_dict_to_dataframe(shifts)
+        else
+            append!(df, convert_dict_to_dataframe(shifts))
+        end
     end
-    last_player = curr_name
-    shifts = [nodeText(x) for x in all_raw_shifts[last_player]]
-    println(shifts)
+    return df
+end
+
+function scrape_shifts(game_id::AbstractString)
+    vcat
 end
 
 #http://www.nhl.com/scores/htmlreports/20162017/TH020426.HTM
-home, away = get_shifts("2016020426")
-home_team = get_team_name(home)
-away_team = get_team_name(away)
+home_response, away_response = get_shifts("2016020426")
+home_team = get_team_name(home_response)
+away_team = get_team_name(away_response)
 
-parse_html(home, home_team)
+home_shifts = parse_html(home_response, home_team)
+away_shifts = parse_html(away_response, away_team)

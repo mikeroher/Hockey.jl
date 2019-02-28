@@ -1,6 +1,8 @@
 using Dates
 using DataFrames
 
+const Nullable{T} = Union{T, Nothing}
+
 function convert_to_seconds(minutes::AbstractString)::Integer
     # A small workaround to get the total seconds
     mins = Dates.DateTime(minutes, "MM:SS")
@@ -10,8 +12,8 @@ function convert_to_seconds(minutes::AbstractString)::Integer
     return Dates.value(secs_obj)
 end
 
-function convert_dict_to_dataframe(dictionary::Array{Dict{Symbol, Any}})::DataFrame
-    return vcat(DataFrame.(dictionary)...)
+function convert_dict_to_dataframe(array_of_dict::Array{Dict{Symbol, Any}})::DataFrame
+    return vcat(DataFrame.(array_of_dict)...)
 end
 
 
