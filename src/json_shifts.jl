@@ -36,6 +36,8 @@ end
 function parse_json(shift_json::Dict{String, Any}, game_id::String)
     shifts = [parse_shift(shift) for shift in shift_json["data"]]
     filter!(s -> !isempty(s), shifts)
+    println(shifts)
+    println(typeof(shifts))
     df = convert_dict_to_dataframe(shifts)
     df[:game_id] = String(game_id)[6:end]
     sort!(df, (:period, :start), rev=(false, false))

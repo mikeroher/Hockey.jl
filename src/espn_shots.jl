@@ -98,7 +98,7 @@ end
 date = YYYYMMDD
 """
 function scrape_shots(date::AbstractString, home_team::AbstractString, away_team::AbstractString)
-    espn_id = get_espn_game_id(date, home, away)
+    espn_id = get_espn_game_id(date, home_team, away_team)
     response = get_espn_game_pbp(espn_id)
     return parse_espn(response)
 end

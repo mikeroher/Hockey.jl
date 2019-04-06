@@ -46,7 +46,7 @@ function create_missing_columns(play_dict::Dict{Symbol, Any}, event::Dict{String
     # There are at most three events...
     MAX_N::Int8 = 4
 
-    for i in range(N, MAX_N)
+    for i in range(N, stop=MAX_N)
         play_dict[Symbol("p$(i)_name")] = nothing
         play_dict[Symbol("p$(i)_id")] = nothing
     end
