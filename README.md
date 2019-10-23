@@ -1,80 +1,41 @@
-# Project Title
+# Hockey Scraper
 
-One Paragraph of project description goes here
+A hockey scraper written in Julia, based on [Harry Shormer's Python scraper](https://github.com/HarryShomer/Hockey-Scraper).
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
 ### Prerequisites
 
-What things you need to install the software and how to install them
+While installing the package should automatically install all dependencies, we note them here in case you would like to install manually.
 
-```
-Give examples
-```
+* Cascadia - CSS Selector library for HTML scraping "54eefc05-d75b-58de-a785-1a3403f0919f"
+* DataFrames - DataFrame Library
+* Gumbo - HTML Scraping Library
+* HTTP - To make HTTP requests
+* JSON - JSON Parsing Library
+* LightXML - XML Parsing Library
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
+For all games after 2011, the `master` branch can be used. For games prior to that, please refer to the `html-pbp-scraper` branch.
 
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
+```julia
+] # to launch Pkg manager
+add "https://github.com/mikeroher/Hockey.jl"
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
+### Running
 
-## Running the tests
+To use the module, we expose a single function that returns the play by play and optionally the player shift data.
 
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
+```julia
+# By default, we don't retreive shifts as there's an optional parameter to indicate if you want to scrape shifts
+Hockey.scrape_game(game_id, scrape_shifts::Bool=false) 
 ```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
 
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
-
-## Authors
-
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
@@ -82,6 +43,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* [Harry Shormer's NHL and NWHL Scraper written in Python](https://github.com/HarryShomer/Hockey-Scraper) - This was the main source of reference for this scraper. Some parts of this library were directly translated from Python into Julia. Many thanks to Harry for a fantastic library!
